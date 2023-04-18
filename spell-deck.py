@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request, url_for, redirect
 import json
 from random import randint
+import os
 
 app=Flask("dom")
 
