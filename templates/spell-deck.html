@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+
+<html>
+  <style>
+  body {background-color: #944ab5;}
+    
+  .overlay {
+      position:absolute;
+      z-index:0;
+      top:0;
+      left:0;
+  }
+  
+.square {
+  height: 50px;
+  width: 50px;
+  background-color: #000000;
+  opacity: 0.5;
+  visibility:hidden;
+  top:0;
+  left:0;
+  position:absolute;
+  z-index:1;
+}
+</style>
+  <div id="box">
+  </div>
+  <div id="square" class="square"></div>
+  <img id="cardshow" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay">
+  <img id="hp1" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay">
+  <img id="hp2" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay">
+  <img id="card1" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay" style="border: 3px solid blue;">
+  <img id="card2" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay" style="border: 3px solid red;">
+  <div id="hp_value1" class="overlay" style="text-align: center;border: 3px solid green;">15</div>
+  <div id="hp_value2" class="overlay">15</div>
+  <div id="ward_value1" class="overlay" style="color: blue">15</div>
+  <div id="ward_value2" class="overlay" style="color: blue">15</div>
+  <div id="description" class="overlay" style="color:#bebebe">This is what the card says</div>
+  <button id="cast_button" onclick="cast();" class="overlay">Cast</button>
+<script>
+  step=0;
+  session_id={{e}};
+  console.log(session_id);
+  box = document.getElementById('box');
+  
+  square = document.getElementById('square');
+  square.onclick = function() {
+    unview();
+  };
+  
+  cardshow.style.zIndex=2;
+  cardshow.style.visibility="hidden";
+  description.style.zIndex=2;
+  description.style.visibility="hidden";
+  cast_button.style.zIndex=2;
+  cast_button.style.visibility="hidden";
+  
+  start_cards=["FRB","MGB","WRD","CSH","ACM","ABE","TNF","PFL","INF","CTS"];
+  card_img=[];
+  action_list=[[],[]];
+  action_count=0;
+  game_id=0;
+  
+  player_stats=[[0,[],0,[false]],[0,[],0,[false]]];
+  
+  player_turn=0;
+  
+  player_num=0;
+  
+  
+  //utility functions
+  
+  
+function other_player(player){
+  if (player==0){
+    return 1;
+  }
+  else{
+    return 0;
+  }
+}
+  
+  
+  
+  //functions for talking with the server
+  
+  
+function get_session(session_id){
+    message=session_id;
+     fetch(
+           '/sessionsend', 
+           {
+             method: 'POST',
+             headers: {
+              'Content-type': 'application/json',
+              'Accept': 'application/json'
+             },
+             // Strigify the payload into JSON:
+             body:JSON.stringify(message)
+           }
+          ).then(res=>{
+             if(res.ok) {
+               return res.json();
+             } else {
+               alert('something is wrong');
+             }
+           }
+          ).then(jsonResponse=>{
+  // Log the response data in the console
+  console.log(jsonResponse);
+  player_num=jsonResponse[1]-1;
+  game_id=jsonResponse[4];
+  } 
+  ).catch((err) => console.error(err));
+  getinfo();
+}
+
+get_session(session_id);
+  
+  
+function getinfo(){
+    message=[step,game_id];
+     fetch(
+           '/postman', 
+           {
+             method: 'POST',
+             headers: {
+              'Content-type': 'application/json',
+              'Accept': 'application/json'
+             },
+             // Strigify the payload into JSON:
+             body:JSON.stringify(message)
+           }
+          ).then(res=>{
+             if(res.ok) {
+               return res.json();
+             } else {
+               alert('something is wrong');
+             }
+           }
+          ).then(jsonResponse=>{
+  // Log the response data in the console
+  if (step<jsonResponse[1]){
+    do_actions(jsonResponse[0]);
+    step=jsonResponse[1];
+    console.log(jsonResponse);
+  }
+  } 
+  ).catch((err) => console.error(err));
+}
+
+
+function send_action(cardcode){
+    message=[cardcode,player_num,getstats(cardcode),game_id];
+     fetch(
+           '/action', 
+           {
+             method: 'POST',
+             headers: {
+              'Content-type': 'application/json',
+              'Accept': 'application/json'
+             },
+             // Strigify the payload into JSON:
+             body:JSON.stringify(message)
+           }
+          ).then(res=>{
+             if(res.ok) {
+               return res.json();
+             } else {
+               alert('something is wrong');
+             }
+           }
+          ).then(jsonResponse=>{
+  // Log the response data in the console
+  console.log(jsonResponse);
+  } 
+  ).catch((err) => console.error(err));
+  getinfo();
+}
+
+
+//functions for doing things
+
+
+
+function damage(player,damage){
+  if (player_stats[player][3][0]){
+    damage=Math.floor(damage/2);
+  }
+  if (damage<=player_stats[player][2]){
+    player_stats[player][2]=player_stats[player][2]-damage;
+  }
+  else{
+    damage=damage-player_stats[player][2];
+    player_stats[player][0]=player_stats[player][0]-damage;
+  }
+}
+
+function counterspell(player){
+  if (player_stats[player][1]!=""){
+    set_next_cast(['CTD', player, [false,[],["Countered spell", "this spell has been countered"],[]], []]);
+    player_stats[player][1]=['CTD', player, [false,[],["Countered spell", "this spell has been countered"],[]], []];
+  }
+}
+
+
+function cast_fireball(action){
+  damage(other_player(action[1]),6);
+}
+
+function cast_mage_blast(action){
+  damage(other_player(action[1]),6);
+}
+
+function cast_ward(action){
+  player_stats[action[1]][2]=player_stats[action[1]][2]+8;
+}
+
+function cast_charged_shield(action){
+  console.log(action);
+  if (action[4][0]){
+    player_stats[action[1]][2]=player_stats[action[1]][2]+10;
+  }
+  else{
+    player_stats[action[1]][2]=player_stats[action[1]][2]+6;
+  }
+}
+
+function cast_arcane_missiles(action){
+  var i;
+  for (i = 0; i < action_list[action[1]].length; i++) {
+    var i2;
+    for (i2 = 0; i2 < action_list[action[1]][i][2][1].length; i2++) {
+      if (action_list[action[1]][i][2][1][i2]=="Arcane" || "All"){
+        damage(other_player(action[1]),2);
+      }
+    }
+  }
+}
+
+function cast_absorb_elements(action){
+  player_stats[action[1]][2]=player_stats[action[1]][2]+7;
+}
+
+function cast_twinflame(action){
+  var check=false;
+  var i;
+  for (i = 0; i < action_list[action[1]].length; i++) {
+    var i2;
+    for (i2 = 0; i2 < action_list[action[1]][i][2][3].length; i2++) {
+      if (action_list[action[1]][i][2][3][i2]=="damaging"){
+        check=true;
+      }
+    }
+  }
+  damage(other_player(action[1]),4);
+  if (check==true){
+    damage(other_player(action[1]),3);
+  }
+}
+
+function cast_phoenix_flame(action){
+  var firecount=4;
+  var i = action_list[action[1]].length-1;
+  var check=true;
+  while (i>=0 && check==true){
+    var i2;
+    check=false;
+    console.log(action_list);
+    for (i2 = 0; i2 < action_list[action[1]][i][2][1].length; i2++) {
+      if (action_list[action[1]][i][2][1][i2]=="Fire" || "All"){
+        firecount=firecount+2;
+        check=true;
+      }
+    }
+    i=i-1;
+  }
+  damage(other_player(action[1]),firecount);
+}
+
+function cast_inner_fire(action){
+  player_stats[action[1]][3][0]=true;
+  player_stats[action[1]][2]=player_stats[action[1]][2]+2;
+}
+
+function cast_counterspell(action){
+  counterspell(other_player(action[1]));
+}
+
+
+
+//functions for functioning
+
+
+  //action: [cardcode, player who cast it, stats]
+   //stats:  [is an instant (true/false)?]
+  //player_stats: [[p1 hp, p1 next card, p1 ward, [p1 inner fire]],[p2 hp, p2 next card, p2 ward, [p2 inner fire]]]
+
+function cast(action){
+  console.log(action_list);
+  console.log(action);
+  if (action[0]=="FRB"){
+    cast_fireball(action);
+  }
+  else if(action[0]=="MGB"){
+    cast_mage_blast(action);
+  }
+  else if(action[0]=="WRD"){
+    cast_ward(action);
+  }
+  else if(action[0]=="CSH"){
+    cast_charged_shield(action);
+  }
+  else if(action[0]=="ACM"){
+    cast_arcane_missiles(action);
+  }
+  else if(action[0]=="ABE"){
+    cast_absorb_elements(action);
+  }
+  else if(action[0]=="TNF"){
+    cast_twinflame(action);
+  }
+  else if(action[0]=="PFL"){
+    cast_phoenix_flame(action);
+  }
+  else if(action[0]=="INF"){
+    cast_inner_fire(action);
+  }
+  else if(action[0]=="CTS"){
+    cast_counterspell(action);
+  }
+  console.log(action, "a");
+  action_list[action[1]].push(action);
+  if (action[1]==player_num){
+    card1.style.opacity=0.5;
+  }
+  else if (action[1]==other_player(player_num)){
+    card2.style.opacity=0.5;
+  }
+}
+
+function do_action(action){
+  if (player_num==player_turn){
+    remove_card(action[0]);
+  }
+  update();
+  console.log(action, "e");
+  if (action[2][0]){
+    cast(action);
+    set_next_cast(action);
+    player_stats[action[1]][1]="";
+  }
+  else{
+    set_next_cast(action);
+    player_stats[action[1]][1]=action;
+  }
+  if (player_stats[other_player(action[1])][1]!=""){
+    cast(player_stats[other_player(action[1])][1]);
+  }
+  player_turn=other_player(action[1]);
+  update();
+  if (player_num==player_turn){
+    //alert("your turn");
+    document.getElementById("card1").style.borderWidth="9px";
+    document.getElementById("card2").style.borderWidth="3px";
+  }
+  else{
+    document.getElementById("card1").style.borderWidth="3px";
+    document.getElementById("card2").style.borderWidth="9px";
+  }
+  player_stats[other_player(action[1])][2]=0;
+  player_stats[other_player(action[1])][3][0]=false;
+  update();
+  action_count=action_count+1;
+  if (action_count==20){
+    alert("game end");
+  }
+}
+
+function do_actions(action_list){
+  var i;
+  for (i = 0; i < action_list.length; i++) {
+    do_action(action_list[i]);
+  }
+}
+
+function button_cast(cardcode){
+  send_action(cardcode);
+  unview();
+}
+
+function getstats(cardcode){
+  if (cardcode=="FRB"){
+    return [false,["Fire"],["Fireball","Deal 6 damage"],["damaging"]];
+  }
+  else if (cardcode=="ACM"){
+    return [false,["Arcane"],["Arcane missiles","Deal 2 damage for each other arcane spell you've cast this game"],["damaging"]];
+  }
+  else if (cardcode=="WRD"){
+    return [true,["Arcane"],["Ward","Instant, Gain 8 defense"],[]];
+  }
+  else if (cardcode=="CTS"){
+    return [false,["Arcane"],["Counterspell","Counter the opponents current spell"],[]];
+  }
+  else if (cardcode=="MGB"){
+    return [false,["Arcane"],["Mage blast","Deal 6 damage"],["damaging"],[]];
+  }
+  else if (cardcode=="INF"){
+    return [true,["Fire"],["Inner fire","Instant, Take half damage this turn, gain 2 defense"],[]];
+  }
+  else if (cardcode=="CSH"){
+    return [true,["Arcane"],["Charged shield","Instant, Gain 6 defense, 4 more if you're holding an arcane spell"],[]];
+  }
+  else if (cardcode=="PFL"){
+    return [false,["Fire"],["Phoenix flame","Deal 4 damage, 2 more for each turn in a row you cast a fire spell"],["damaging"]];
+  }
+  else if (cardcode=="ABE"){
+    return [true,["All"],["Absorb elements","Instant, Gain 7 defense, this counts as all spell types"],[]];
+  }
+  else if (cardcode=="TNF"){
+    return [false,["Fire"],["Twinflame","deal 4 damage, then if you cast a damaging spell last turn deal another 3"],["damaging"]];
+  }
+  else if (cardcode=="CTD"){
+    return [false,[],["Countered spell", "this spell has been countered"],[]];
+  }
+  else{
+    return [false,["Not found"],["Not found","Not found"],[]];
+  }
+}
+
+function set_next_cast(action){
+  if (action[1]==player_num){
+    card1.setAttribute(
+        'src',
+        getcard(action[0])
+    );
+    card1.onclick = function() {
+      view(action[0], false);
+    };
+    if (action[2][0]==true){
+      card1.style.opacity=0.5;
+    }
+    else{
+      card1.style.opacity=1;
+    }
+  }
+  else if(action[1]==other_player(player_num)){
+    card2.setAttribute(
+        'src',
+        getcard(action[0])
+    );
+    card2.onclick = function() {
+      view(action[0], false);
+    };
+    if (action[2][0]==true){
+      card2.style.opacity=0.5;
+    }
+    else{
+      card2.style.opacity=1;
+    }
+  }
+}
+
+function remove_card(cardcode){
+  var i;
+  var index;
+  for (i = 0; i < card_img.length; i++) {
+    if (cardcode==card_img[i][1]){
+      index=i;
+    }
+  }
+  card_img[index][0].remove();
+  card_img.splice(index, 1);
+}
+
+
+
+//functions for UI
+
+
+function update(){
+    document.getElementById("hp_value1").innerHTML = player_stats[other_player(player_num)][0];
+    document.getElementById("hp_value2").innerHTML = player_stats[player_num][0];
+    document.getElementById("ward_value1").innerHTML = player_stats[other_player(player_num)][2];
+    document.getElementById("ward_value2").innerHTML = player_stats[player_num][2];
+}
+
+function view(cardcode, casting){
+  square.style.visibility="visible";
+  cardshow.style.visibility="visible";
+  cardshow.setAttribute(
+    'src',
+    getcard(cardcode)
+  );
+  description.style.visibility="visible";
+  stats=getstats(cardcode);
+  document.getElementById("description").innerHTML = [stats[1],stats[2]];
+  if (player_turn==player_num && casting==true){
+    cast_button.style.visibility="visible";
+    cast_button.setAttribute('onclick', "button_cast('"+cardcode+"')");
+  }
+}
+
+function unview(){
+  square.style.visibility="hidden";
+  cardshow.style.visibility="hidden";
+  description.style.visibility="hidden";
+  cast_button.style.visibility="hidden";
+}
+
+function getcard(cardcode){
+  if (cardcode=="FRB"){
+    return("{{url_for('static', filename='fireball_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="ACM"){
+    return("{{url_for('static', filename='arcane_missiles_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="WRD"){
+    return("{{url_for('static', filename='ward_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="CTS"){
+    return("{{url_for('static', filename='counterspell_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="CSH"){
+    return("{{url_for('static', filename='charged_shield_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="PFL"){
+    return("{{url_for('static', filename='phoenix_flame_card_prototype.jpg')}}");
+  }
+  else {
+    return("{{url_for('static', filename='card_base.jpg')}}");
+  }
+}
+
+function makecard(cardcode){
+  var current=card_img.length;
+  card_img.push([document.createElement('img'),cardcode]);
+  console.log(getcard(cardcode));
+  card_img[current][0].setAttribute(
+      'src',
+      getcard(cardcode)
+  );
+  card_img[current][0].setAttribute('alt', 'nature');
+  card_img[current][0].setAttribute('height', 85);
+  card_img[current][0].setAttribute('width', 55);
+  card_img[current][0].classList.add("overlay");
+  card_img[current][0].style.left=20+"px";
+  card_img[current][0].style.top=20+"px";
+  box.appendChild(card_img[current][0]);
+  card_img[current][0].onclick = function() {
+    view(cardcode, true);
+  };
+  //console.log(card_img);
+}
+
+function resize(){
+    var i;
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    
+    for (i = 0; i < card_img.length; i++) {
+      card_img[i][0].style.left=((w-(0.55*h)-(0.1*w))/card_img.length*i)+(0.1*w)+"px";
+      card_img[i][0].style.top=h*0.8+"px";
+      
+      card_img[i][0].setAttribute('height', 0.85*h);
+      card_img[i][0].setAttribute('width', 0.55*h);
+    }
+    
+    box.setAttribute('width', w);
+    box.setAttribute('height', h);
+    square.style.width=w-16+"px";
+    square.style.height=h+"px";
+    
+    cardshow.style.width=h*0.55+"px";
+    cardshow.style.height=h*0.85+"px";
+    cardshow.style.left=w*0.3-h*0.275+"px";
+    
+    description.style.top=h*0.2+"px";
+    description.style.left=w*0.6+"px";
+    
+    cast_button.style.top=h*0.5+"px";
+    cast_button.style.left=w*0.6+"px";
+    
+    hp2.style.top=h*0.4+"px";
+    hp1.style.left=w*0.5-h*0.15+"px";
+    hp2.style.left=w*0.5-h*0.15+"px";
+    
+    hp1.style.width=h*0.3+"px";
+    hp1.style.height=h*0.3+"px";
+    hp2.style.width=h*0.3+"px";
+    hp2.style.height=h*0.3+"px";
+    
+    hp_value1.style.top=h*0.15+"px";
+    hp_value2.style.top=h*0.55+"px";
+    hp_value1.style.left=w*0.5+"px";
+    hp_value2.style.left=w*0.5+"px";
+    
+    ward_value1.style.top=h*0.18+"px";
+    ward_value2.style.top=h*0.58+"px";
+    ward_value1.style.left=w*0.5+"px";
+    ward_value2.style.left=w*0.5+"px";
+    
+    card1.style.top=h*0.05+"px";
+    card2.style.top=h*0.05+"px";
+    card1.style.left=w*0.25-h*0.275*0.8+"px";
+    card2.style.left=w*0.75-h*0.275*0.8+"px";
+    
+    card1.style.width=h*0.55*0.8+"px";
+    card1.style.height=h*0.85*0.8+"px";
+    card2.style.width=h*0.55*0.8+"px";
+    card2.style.height=h*0.85*0.8+"px";
+    
+}
+
+window.onresize = function() {
+    resize();
+};
+
+for (i = 0; i < start_cards.length; i++) {
+  makecard(start_cards[i]);
+}
+resize();
+getinfo();
+
+setInterval(getinfo, 1000);
+</script>
+
+
+
+</html>

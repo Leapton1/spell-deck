@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html>
+  <style>
+
+    
+  </style>
+<head>
+    <title></title>
+</head>
+<body>
+  <div id="box">
+  <button id="play_button" onclick="send_session(player);" >Play</button>
+  <button id="player_button" onclick="change_player();" >Player: 1</button>
+  <button id="new_game_button" onclick="make_game();" >Create new game</button>
+  <input id="gameIDinput" type="text" name="myCountry" placeholder="Item">
+<script>
+  
+player=1;
+gameID=document.getElementById("gameIDinput").value;
+  
+  
+function change_card(){
+  
+}
+  
+function change_player(){
+  if (player==1){
+    player=2;
+  }
+  else{
+    player=1;
+  }
+  document.getElementById("player_button").innerHTML = "Player: "+player;
+}
+  
+  
+function send_session(info){
+    message=[info,document.getElementById("gameIDinput").value];
+     fetch(
+           '/sessionget', 
+           {
+             method: 'POST',
+             headers: {
+              'Content-type': 'application/json',
+              'Accept': 'application/json'
+             },
+             body:JSON.stringify(message)
+           }
+          ).then(res=>{
+             if(res.ok) {
+               return res.json();
+             } else {
+               alert('something is wrong');
+             }
+           }
+          ).then(jsonResponse=>{
+  console.log(jsonResponse);
+  session_num=jsonResponse;
+  location.href = location.href+'main?e='+session_num;
+  } 
+  ).catch((err) => console.error(err));
+}
+
+function make_game(){
+    message=[document.getElementById("gameIDinput").value];
+     fetch(
+           '/makegame', 
+           {
+             method: 'POST',
+             headers: {
+              'Content-type': 'application/json',
+              'Accept': 'application/json'
+             },
+             body:JSON.stringify(message)
+           }
+          ).then(res=>{
+             if(res.ok) {
+               return res.json();
+             } else {
+               alert('something is wrong');
+             }
+           }
+          ).then(jsonResponse=>{
+  console.log(jsonResponse);
+  } 
+  ).catch((err) => console.error(err));
+}
+
+function getcard(cardcode){
+  if (cardcode=="FRB"){
+    return("{{url_for('static', filename='fireball_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="ACM"){
+    return("{{url_for('static', filename='arcane_missiles_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="WRD"){
+    return("{{url_for('static', filename='ward_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="CTS"){
+    return("{{url_for('static', filename='counterspell_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="CSH"){
+    return("{{url_for('static', filename='charged_shield_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="PFL"){
+    return("{{url_for('static', filename='phoenix_flame_card_prototype.jpg')}}");
+  }
+  else {
+    return("{{url_for('static', filename='card_base.jpg')}}");
+  }
+}
+
+function makecard(cardcode){
+  var current=card_img.length;
+  card_img.push([document.createElement('img'),cardcode]);
+  card_img[current][0].setAttribute(
+      'src',
+      getcard(cardcode)
+  );
+  card_img[current][0].setAttribute('alt', 'nature');
+  card_img[current][0].setAttribute('height', 85);
+  card_img[current][0].setAttribute('width', 55);
+  card_img[current][0].classList.add("overlay");
+  card_img[current][0].style.left=20+"px";
+  card_img[current][0].style.top=20+"px";
+  box.appendChild(card_img[current][0]);
+  card_img[current][0].onclick = function() {
+    change_card(cardcode);
+  };
+  //console.log(card_img);
+}
+    
+card_img=[];
+makecard("FRB");
+
+</script>
+</body>
+</html>
