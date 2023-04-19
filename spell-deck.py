@@ -20,10 +20,11 @@ cards=[[["FRB",["fire"]],["MGB",["arcane"]],["WRD",["arcane"]],["CSH",["arcane"]
 
 def remove_card(cardcode,player,game):
     global gamedata
-    for i in range(0, len(gamedata[game][2][player])):
-        if cardcode==gamedata[game][2][player][i][0]:
-            index=i
-    gamedata[game][2][player].pop(index)
+    if cardcode!="DUD":
+        for i in range(0, len(gamedata[game][2][player])):
+            if cardcode==gamedata[game][2][player][i][0]:
+                index=i
+        gamedata[game][2][player].pop(index)
 
 def csh_check(player,game):
     global gamedata
@@ -83,7 +84,9 @@ def mainroute():
 def postman():
     global gamedata
     pat=request.get_json()
+    print(pat)
     #print(pat)
+    print([[],len(gamedata[pat[1]][1])])
     info=[[],len(gamedata[pat[1]][1])]
     for i in range(pat[0],len(gamedata[pat[1]][1]) ): 
         info[0].append(gamedata[pat[1]][1][i])

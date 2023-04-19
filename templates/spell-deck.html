@@ -31,10 +31,10 @@
   <img id="hp2" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay">
   <img id="card1" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay" style="border: 3px solid blue;">
   <img id="card2" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay" style="border: 3px solid red;">
-  <div id="hp_value1" class="overlay" style="text-align: center;border: 3px solid green;">15</div>
-  <div id="hp_value2" class="overlay">15</div>
-  <div id="ward_value1" class="overlay" style="color: blue">15</div>
-  <div id="ward_value2" class="overlay" style="color: blue">15</div>
+  <div id="hp_value1" class="overlay">0</div>
+  <div id="hp_value2" class="overlay">0</div>
+  <div id="ward_value1" class="overlay" style="color: blue">0</div>
+  <div id="ward_value2" class="overlay" style="color: blue">0</div>
   <div id="description" class="overlay" style="color:#bebebe">This is what the card says</div>
   <button id="cast_button" onclick="cast();" class="overlay">Cast</button>
 <script>
@@ -110,6 +110,10 @@ function get_session(session_id){
   console.log(jsonResponse);
   player_num=jsonResponse[1]-1;
   game_id=jsonResponse[4];
+  if (player_num==0){
+    makecard("DUD")
+  }
+  resize();
   } 
   ).catch((err) => console.error(err));
   getinfo();
@@ -372,7 +376,7 @@ function do_action(action){
   player_stats[other_player(action[1])][3][0]=false;
   update();
   action_count=action_count+1;
-  if (action_count==20){
+  if (action_count==21){
     alert("game end");
   }
 }
@@ -422,6 +426,9 @@ function getstats(cardcode){
   }
   else if (cardcode=="CTD"){
     return [false,[],["Countered spell", "this spell has been countered"],[]];
+  }
+  else if (cardcode=="DUD"){
+    return [false,[],["The Dud", "You get this spell for going first. Remember that only instants will work on your last turn."],[]];
   }
   else{
     return [false,["Not found"],["Not found","Not found"],[]];
