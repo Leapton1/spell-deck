@@ -527,6 +527,15 @@ function getcard(cardcode){
   else if (cardcode=="PFL"){
     return("{{url_for('static', filename='phoenix_flame_card_prototype.jpg')}}");
   }
+  else if (cardcode=="ABE"){
+    return("{{url_for('static', filename='absorb_elements_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="TNF"){
+    return("{{url_for('static', filename='twinflame_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="CTD"){
+    return("{{url_for('static', filename='countered_card_prototype.jpg')}}");
+  }
   else {
     return("{{url_for('static', filename='card_base.jpg')}}");
   }
