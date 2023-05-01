@@ -34,12 +34,6 @@ def csh_check(player,game):
                 return True
     return False
 
-def find_game(ID):
-    global gamedata
-    for i in range(0, len(gamedata)):
-        if gamedata[i][0]==ID:
-            return int(i)
-    return int(0)
 
 
 @app.route("/")
@@ -52,14 +46,14 @@ def makegame():
     pat=request.get_json()
     gamedata.append([pat[0],[],[[["FRB",["fire"]],["MGB",["arcane"]],["WRD",["arcane"]],["CSH",["arcane"]],["ACM",["arcane"]],["ABE",["all"]],["TNF",["fire"]],["PFL",["fire"]],["INF",["fire"]],["CTS",["arcane"]]]\
     ,[["FRB",["fire"]],["MGB",["arcane"]],["WRD",["arcane"]],["CSH",["arcane"]],["ACM",["arcane"]],["ABE",["all"]],["TNF",["fire"]],["PFL",["fire"]],["INF",["fire"]],["CTS",["arcane"]]]]])
-    return jsonify(pat)
+    return jsonify(len(gamedata)-1)
 
 @app.route('/sessionget', methods = ['POST'])
 def sessionerget():
     global sessions
     random_num=randint(0,100000)
     pat=request.get_json()
-    sessions.append([len(sessions),pat[0],random_num,pat[1],find_game(pat[1])])
+    sessions.append([len(sessions),pat[0],random_num,pat[1],int(pat[2])])
     return jsonify(random_num)
 
 @app.route('/sessionsend', methods = ['POST'])
@@ -97,14 +91,16 @@ def postman():
 @app.route('/action', methods = ['POST'])
 def actioner():
     global gamedata
-    #pat=cardcode,player_num,getstats(cardcode),game_id,appended bit for extra data that is going to be a pain whenever I add something new to this
+    #pat=cardcode,player_num,getstats(cardcode),game_id,data from the server about the action, game_code
     pat=request.get_json()
-    pat.append([])
-    remove_card(pat[0],pat[1],pat[3])
-    if pat[0]=="CSH":
-        pat[4].append(csh_check(pat[1],pat[3]))
-    gamedata[pat[3]][1].append(pat)
-    return jsonify('hi there')
+    if gamedata[int(pat[3])][0]==pat[5]:
+        remove_card(pat[0],pat[1],pat[3])
+        if pat[0]=="CSH":
+            pat[4].append(csh_check(pat[1],pat[3]))
+        gamedata[pat[3]][1].append(pat)
+        return jsonify('hi there')
+    else:
+        return jsonify('nope')
 
 port=os.getenv('PORT') or 80
 

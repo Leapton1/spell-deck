@@ -60,6 +60,7 @@
   action_list=[[],[]];
   action_count=0;
   game_id=0;
+  game_code=0;
   
   player_stats=[[0,[],0,[false]],[0,[],0,[false]]];
   
@@ -110,6 +111,7 @@ function get_session(session_id){
   console.log(jsonResponse);
   player_num=jsonResponse[1]-1;
   game_id=jsonResponse[4];
+  game_code=jsonResponse[3];
   if (player_num==0){
     makecard("DUD")
   }
@@ -123,7 +125,7 @@ get_session(session_id);
   
   
 function getinfo(){
-    message=[step,game_id];
+    message=[step,game_id,game_code];
      fetch(
            '/postman', 
            {
@@ -155,7 +157,7 @@ function getinfo(){
 
 
 function send_action(cardcode){
-    message=[cardcode,player_num,getstats(cardcode),game_id];
+    message=[cardcode,player_num,getstats(cardcode),game_id,[],game_code];
      fetch(
            '/action', 
            {
@@ -177,6 +179,9 @@ function send_action(cardcode){
           ).then(jsonResponse=>{
   // Log the response data in the console
   console.log(jsonResponse);
+  if (jsonResponse=='nope'){
+    alert('wrong game code entered, spectator mode only.')
+  }
   } 
   ).catch((err) => console.error(err));
   getinfo();
@@ -542,6 +547,12 @@ function getcard(cardcode){
   }
   else if (cardcode=="CTD"){
     return("{{url_for('static', filename='countered_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="INF"){
+    return("{{url_for('static', filename='inner_fire_card_prototype.jpg')}}");
+  }
+  else if (cardcode=="MGB"){
+    return("{{url_for('static', filename='mage_blast_card_prototype.jpg')}}");
   }
   else {
     return("{{url_for('static', filename='card_base.jpg')}}");
