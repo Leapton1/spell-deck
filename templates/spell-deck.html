@@ -240,7 +240,7 @@ function cast_arcane_missiles(action){
   for (i = 0; i < action_list[action[1]].length; i++) {
     var i2;
     for (i2 = 0; i2 < action_list[action[1]][i][2][1].length; i2++) {
-      if (action_list[action[1]][i][2][1][i2]=="Arcane" || "All"){
+      if (action_list[action[1]][i][2][1][i2]=="Arcane" || action_list[action[1]][i][2][1][i2]=="All"){
         damage(other_player(action[1]),2);
       }
     }
@@ -277,7 +277,7 @@ function cast_phoenix_flame(action){
     check=false;
     console.log(action_list);
     for (i2 = 0; i2 < action_list[action[1]][i][2][1].length; i2++) {
-      if (action_list[action[1]][i][2][1][i2]=="Fire" || "All"){
+      if (action_list[action[1]][i][2][1][i2]=="Fire" || action_list[action[1]][i][2][1][i2]=="All"){
         firecount=firecount+2;
         check=true;
       }
