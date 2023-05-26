@@ -6,35 +6,114 @@
     
   .overlay {
       position:absolute;
-      z-index:0;
+      z-index:1;
       top:0;
       left:0;
   }
   
 .square {
-  height: 50px;
-  width: 50px;
+  position: fixed; /* Sit on top of the page content */
+  width: 100%; /* Full width (cover the whole page) */
+  height: 100%; /* Full height (cover the whole page) */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: #000000;
   opacity: 0.5;
   visibility:hidden;
   top:0;
   left:0;
-  position:absolute;
-  z-index:1;
+  z-index:3;
+}
+
+.collapsible {
+  background-color: #777;
+  color: white;
+  cursor: pointer;
+  padding: 0.4vw;
+  width: 30%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 2vw;
+}
+
+.active, .collapsible:hover {
+  background-color: #555;
+}
+
+.collapsible:after {
+  content: '\002B';
+  color: white;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2212";
+}
+
+.content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+  background-color: #f1f1f1;
+  width: 100%;
+  padding: 0 18px;
+  font-size: 2vw;
+}
+
+#wrapper {
+    opacity: 0.4;
+    filter: alpha(opacity=40); /* msie */
+    background-color: #000;
+    z-index:1;
 }
 </style>
-  <div id="box">
+  <div style="position:absolute; z-index:2; max-width: 100%;">
+  <button class="collapsible">i</button>
+<div class="content">
+  <p id="lobby_info"> lemon</p>
+</div>
+  </div>
+
+<script>
+    //original parts at https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_collapsible_symbol
+var coll = document.getElementsByClassName("collapsible");
+var i;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.maxHeight){
+      content.style.maxHeight = null;
+    } else {
+      content.style.maxHeight = content.scrollHeight + "px";
+    } 
+  });
+}
+</script>
+
+
+  <div id="box" style="width: 100%; height:100%;">
   </div>
   <div id="square" class="square"></div>
   <img id="cardshow" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay">
-  <img id="hp1" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay">
-  <img id="hp2" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay">
-  <img id="card1" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay" style="border: 3px solid blue;">
-  <img id="card2" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay" style="border: 3px solid red;">
-  <div id="hp_value1" class="overlay">0</div>
-  <div id="hp_value2" class="overlay">0</div>
-  <div id="ward_value1" class="overlay" style="color: blue">0</div>
-  <div id="ward_value2" class="overlay" style="color: blue">0</div>
+  <img id="hp1" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay" style="z-index:2;">
+  <img id="hp2" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay" style="z-index:2;">
+  <img id="card1back" width="55" height="85" class="overlay" style="background-color: blue; z-index:0;">
+  <img id="card2back" width="55" height="85" class="overlay" style="background-color: red; z-index:0;">
+  <div id="wrapper">
+    <img id="card1" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay">
+  </div>
+  <img id="card2" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay">
+  <div id="hp_value1" class="overlay" style="z-index:2;">0</div>
+  <div id="hp_value2" class="overlay" style="z-index:2;">0</div>
+  <div id="ward_value1" class="overlay" style="color: blue;z-index:2;">0</div>
+  <div id="ward_value2" class="overlay" style="color: blue;z-index:2;">0</div>
   <div id="description" class="overlay" style="color:#bebebe">This is what the card says</div>
   <button id="cast_button" onclick="cast();" class="overlay">Cast</button>
 <script>
@@ -48,11 +127,11 @@
     unview();
   };
   
-  cardshow.style.zIndex=2;
+  cardshow.style.zIndex=4;
   cardshow.style.visibility="hidden";
-  description.style.zIndex=2;
+  description.style.zIndex=4;
   description.style.visibility="hidden";
-  cast_button.style.zIndex=2;
+  cast_button.style.zIndex=4;
   cast_button.style.visibility="hidden";
   
   start_cards=["FRB","MGB","WRD","CSH","ACM","ABE","TNF","PFL","INF","CTS"];
@@ -61,6 +140,8 @@
   action_count=0;
   game_id=0;
   game_code=0;
+  card1up=0;
+  allow_card_animate=true;
   
   player_stats=[[0,[],0,[false]],[0,[],0,[false]]];
   
@@ -81,12 +162,15 @@ function other_player(player){
   }
 }
   
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
   
   
   //functions for talking with the server
   
   
-function get_session(session_id){
+async function get_session(session_id){
     message=session_id;
      fetch(
            '/sessionsend', 
@@ -112,51 +196,53 @@ function get_session(session_id){
   player_num=jsonResponse[1]-1;
   game_id=jsonResponse[4];
   game_code=jsonResponse[3];
+  document.getElementById('lobby_info').innerHTML="player "+jsonResponse[1]+"<br>gamecode: "+jsonResponse[3]+"<br>id: "+jsonResponse[4];
   if (player_num==0){
     makecard("DUD")
   }
   resize();
   } 
   ).catch((err) => console.error(err));
-  getinfo();
+  getinfo().then();
 }
 
 get_session(session_id);
   
   
-function getinfo(){
-    message=[step,game_id,game_code];
-     fetch(
-           '/postman', 
-           {
-             method: 'POST',
-             headers: {
-              'Content-type': 'application/json',
-              'Accept': 'application/json'
-             },
-             // Strigify the payload into JSON:
-             body:JSON.stringify(message)
-           }
-          ).then(res=>{
-             if(res.ok) {
-               return res.json();
-             } else {
-               alert('something is wrong');
-             }
-           }
-          ).then(jsonResponse=>{
-  // Log the response data in the console
-  if (step<jsonResponse[1]){
-    do_actions(jsonResponse[0]);
-    step=jsonResponse[1];
-    console.log(jsonResponse);
-  }
-  } 
-  ).catch((err) => console.error(err));
+async function getinfo() {
+  message=[step,game_id,game_code];
+  fetch(
+    '/postman', 
+    {
+      method: 'POST',
+      headers: {
+        'Content-type': 'application/json',
+        'Accept': 'application/json'
+      },
+      // Strigify the payload into JSON:
+      body:JSON.stringify(message)
+    }
+  ).then(res => {
+    if(res.ok) {
+      return res.json();
+    } else {
+      alert('something is wrong');
+    }
+  }).then(async jsonResponse => {
+    // Log the response data in the console
+    if (step<jsonResponse[1] & allow_card_animate==true){
+      allow_card_animate=false;
+      await do_actions(jsonResponse[0]);
+      step=jsonResponse[1];
+      console.log(jsonResponse);
+      allow_card_animate=true;
+      getinfo().then();
+    }
+  }).catch((err) => console.error(err));
 }
 
 
-function send_action(cardcode){
+async function send_action(cardcode){
     message=[cardcode,player_num,getstats(cardcode),game_id,[],game_code];
      fetch(
            '/action', 
@@ -184,7 +270,7 @@ function send_action(cardcode){
   }
   } 
   ).catch((err) => console.error(err));
-  getinfo();
+  getinfo().then();
 }
 
 
@@ -370,12 +456,12 @@ function do_action(action){
   update();
   if (player_num==player_turn){
     //alert("your turn");
-    document.getElementById("card1").style.borderWidth="9px";
-    document.getElementById("card2").style.borderWidth="3px";
+    //document.getElementById("card1").style.borderWidth="9px";
+    //document.getElementById("card2").style.borderWidth="3px";
   }
   else{
-    document.getElementById("card1").style.borderWidth="3px";
-    document.getElementById("card2").style.borderWidth="9px";
+    //document.getElementById("card1").style.borderWidth="3px";
+    //document.getElementById("card2").style.borderWidth="9px";
   }
   player_stats[other_player(action[1])][2]=0;
   player_stats[other_player(action[1])][3][0]=false;
@@ -386,14 +472,15 @@ function do_action(action){
   }
 }
 
-function do_actions(action_list){
+async function do_actions(action_list){
   var i;
   for (i = 0; i < action_list.length; i++) {
     do_action(action_list[i]);
+    await animate_play();
   }
 }
 
-function button_cast(cardcode){
+async function button_cast(cardcode){
   send_action(cardcode);
   unview();
 }
@@ -421,7 +508,7 @@ function getstats(cardcode){
     return [true,["Arcane"],["Charged shield","Instant, Gain 6 defense, 4 more if you're holding an arcane spell"],[]];
   }
   else if (cardcode=="PFL"){
-    return [false,["Fire"],["Phoenix flame","Deal 4 damage, 2 more for each turn in a row you cast a fire spell"],["damaging"]];
+    return [false,["Fire"],["Phoenix flame","Deal 4 damage, 2 more for each turn in a row before this that you cast a fire spell"],["damaging"]];
   }
   else if (cardcode=="ABE"){
     return [true,["All"],["Absorb elements","Instant, Gain 7 defense, this counts as all spell types"],[]];
@@ -580,7 +667,22 @@ function makecard(cardcode){
   //console.log(card_img);
 }
 
-function resize(){
+async function animate_play(){
+  var i;
+  var h = window.innerHeight;
+  
+  for (i = 0; i < 40; i++) {
+  card1up=card1up+(0.0005*(20-i));
+  card1.style.top=h*(0.05-card1up)+"px";
+  await delay(100);
+  }
+  card1up=0;
+  card1.style.top=h*(0.05-card1up)+"px";
+  
+}
+
+
+async function resize(){
     var i;
     var w = window.innerWidth;
     var h = window.innerHeight;
@@ -592,11 +694,6 @@ function resize(){
       card_img[i][0].setAttribute('height', 0.85*h);
       card_img[i][0].setAttribute('width', 0.55*h);
     }
-    
-    box.setAttribute('width', w);
-    box.setAttribute('height', h);
-    square.style.width=w-16+"px";
-    square.style.height=h+"px";
     
     cardshow.style.width=h*0.55+"px";
     cardshow.style.height=h*0.85+"px";
@@ -627,7 +724,7 @@ function resize(){
     ward_value1.style.left=w*0.5+"px";
     ward_value2.style.left=w*0.5+"px";
     
-    card1.style.top=h*0.05+"px";
+    card1.style.top=h*(0.05-card1up)+"px";
     card2.style.top=h*0.05+"px";
     card1.style.left=w*0.25-h*0.275*0.8+"px";
     card2.style.left=w*0.75-h*0.275*0.8+"px";
@@ -637,6 +734,15 @@ function resize(){
     card2.style.width=h*0.55*0.8+"px";
     card2.style.height=h*0.85*0.8+"px";
     
+    card1back.style.top=h*0.05-5+"px";
+    card2back.style.top=h*0.05-5+"px";
+    card1back.style.left=w*0.25-h*0.275*0.8-5+"px";
+    card2back.style.left=w*0.75-h*0.275*0.8-5+"px";
+    
+    card1back.style.width=h*0.55*0.8+10+"px";
+    card1back.style.height=h*0.85*0.8+10+"px";
+    card2back.style.width=h*0.55*0.8+10+"px";
+    card2back.style.height=h*0.85*0.8+10+"px";
 }
 
 window.onresize = function() {
@@ -647,9 +753,9 @@ for (i = 0; i < start_cards.length; i++) {
   makecard(start_cards[i]);
 }
 resize();
-getinfo();
-
-setInterval(getinfo, 1000);
+getinfo().then();
+console.log("eee")
+setInterval(()=>{getinfo().then()}, 1000);
 </script>
 
 
