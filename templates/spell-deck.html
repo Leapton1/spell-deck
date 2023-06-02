@@ -65,12 +65,7 @@
   font-size: 2vw;
 }
 
-#wrapper {
-    opacity: 0.4;
-    filter: alpha(opacity=40); /* msie */
-    background-color: #000;
-    z-index:1;
-}
+
 </style>
   <div style="position:absolute; z-index:2; max-width: 100%;">
   <button class="collapsible">i</button>
@@ -106,16 +101,20 @@ for (i = 0; i < coll.length; i++) {
   <img id="hp2" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay" style="z-index:2;">
   <img id="card1back" width="55" height="85" class="overlay" style="background-color: blue; z-index:0;">
   <img id="card2back" width="55" height="85" class="overlay" style="background-color: red; z-index:0;">
-  <div id="wrapper">
-    <img id="card1" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay">
+  <div id="wrapper1" class="overlay">
+    <div id="shade1" style="width: 100%; height:100%; opacity: 0.5; background-color: #000000; z-index:2; position:absolute;"></div>
+    <img id="card1" src="{{url_for('static', filename='card_base.jpg')}}" class="overlay" style="width: 100%; height:100%;">
   </div>
-  <img id="card2" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay">
+  <div id="wrapper2" class="overlay">
+    <div id="shade2" style="width: 100%; height:100%; opacity: 0.5; background-color: #000000; z-index:2; position:absolute;"></div>
+    <img id="card2" src="{{url_for('static', filename='card_base.jpg')}}" class="overlay" style="width: 100%; height:100%;">
+  </div>
   <div id="hp_value1" class="overlay" style="z-index:2;">0</div>
   <div id="hp_value2" class="overlay" style="z-index:2;">0</div>
   <div id="ward_value1" class="overlay" style="color: blue;z-index:2;">0</div>
   <div id="ward_value2" class="overlay" style="color: blue;z-index:2;">0</div>
   <div id="description" class="overlay" style="color:#bebebe">This is what the card says</div>
-  <button id="cast_button" onclick="cast();" class="overlay">Cast</button>
+  <button id="cast_button" onclick="" class="overlay">Cast</button>
 <script>
   step=0;
   session_id={{e}};
@@ -140,7 +139,7 @@ for (i = 0; i < coll.length; i++) {
   action_count=0;
   game_id=0;
   game_code=0;
-  card1up=0;
+  cardup=[0,0];
   allow_card_animate=true;
   
   player_stats=[[0,[],0,[false]],[0,[],0,[false]]];
@@ -391,7 +390,7 @@ function cast_counterspell(action){
    //stats:  [is an instant (true/false)?]
   //player_stats: [[p1 hp, p1 next card, p1 ward, [p1 inner fire]],[p2 hp, p2 next card, p2 ward, [p2 inner fire]]]
 
-function cast(action){
+async function cast(action){
   console.log(action_list);
   console.log(action);
   if (action[0]=="FRB"){
@@ -426,23 +425,28 @@ function cast(action){
   }
   console.log(action, "a");
   action_list[action[1]].push(action);
+  update();
+  shade1.style.visibility="hidden";
+  shade2.style.visibility="hidden";
   if (action[1]==player_num){
-    card1.style.opacity=0.5;
+    await animate_play(0);
+    shade1.style.visibility="visible";
   }
   else if (action[1]==other_player(player_num)){
-    card2.style.opacity=0.5;
+    await animate_play(1);
+    shade2.style.visibility="visible";
   }
 }
 
-function do_action(action){
+async function do_action(action){
   if (player_num==player_turn){
     remove_card(action[0]);
   }
   update();
   console.log(action, "e");
   if (action[2][0]){
-    cast(action);
     set_next_cast(action);
+    await cast(action);
     player_stats[action[1]][1]="";
   }
   else{
@@ -450,7 +454,7 @@ function do_action(action){
     player_stats[action[1]][1]=action;
   }
   if (player_stats[other_player(action[1])][1]!=""){
-    cast(player_stats[other_player(action[1])][1]);
+    await cast(player_stats[other_player(action[1])][1]);
   }
   player_turn=other_player(action[1]);
   update();
@@ -475,8 +479,7 @@ function do_action(action){
 async function do_actions(action_list){
   var i;
   for (i = 0; i < action_list.length; i++) {
-    do_action(action_list[i]);
-    await animate_play();
+    await do_action(action_list[i]);
   }
 }
 
@@ -533,14 +536,14 @@ function set_next_cast(action){
         'src',
         getcard(action[0])
     );
-    card1.onclick = function() {
+    wrapper1.onclick = function() {
       view(action[0], false);
     };
     if (action[2][0]==true){
-      card1.style.opacity=0.5;
+      shade1.style.visibility="visible";
     }
     else{
-      card1.style.opacity=1;
+      shade1.style.visibility="hidden";
     }
   }
   else if(action[1]==other_player(player_num)){
@@ -548,14 +551,14 @@ function set_next_cast(action){
         'src',
         getcard(action[0])
     );
-    card2.onclick = function() {
+    wrapper2.onclick = function() {
       view(action[0], false);
     };
     if (action[2][0]==true){
-      card2.style.opacity=0.5;
+      shade2.style.visibility="visible";
     }
     else{
-      card2.style.opacity=1;
+      shade2.style.visibility="hidden";
     }
   }
 }
@@ -667,18 +670,28 @@ function makecard(cardcode){
   //console.log(card_img);
 }
 
-async function animate_play(){
+async function animate_play(player){
   var i;
   var h = window.innerHeight;
   
-  for (i = 0; i < 40; i++) {
-  card1up=card1up+(0.0005*(20-i));
-  card1.style.top=h*(0.05-card1up)+"px";
-  await delay(100);
+  if (player==0){
+    for (i = 0; i < 40; i++) {
+    cardup[0]=cardup[0]+(0.0005*(20-i));
+    wrapper1.style.top=h*(0.05-cardup[0])+"px";
+    await delay(100);
+    }
+    cardup[0]=0;
+    wrapper1.style.top=h*(0.05-cardup[0])+"px";
   }
-  card1up=0;
-  card1.style.top=h*(0.05-card1up)+"px";
-  
+  else if (player==1){
+    for (i = 0; i < 40; i++) {
+    cardup[1]=cardup[1]+(0.0005*(20-i));
+    wrapper2.style.top=h*(0.05-cardup[1])+"px";
+    await delay(100);
+    }
+    cardup[1]=0;
+    wrapper2.style.top=h*(0.05-cardup[1])+"px";
+  }
 }
 
 
@@ -724,15 +737,15 @@ async function resize(){
     ward_value1.style.left=w*0.5+"px";
     ward_value2.style.left=w*0.5+"px";
     
-    card1.style.top=h*(0.05-card1up)+"px";
-    card2.style.top=h*0.05+"px";
-    card1.style.left=w*0.25-h*0.275*0.8+"px";
-    card2.style.left=w*0.75-h*0.275*0.8+"px";
+    wrapper1.style.top=h*(0.05-cardup[0])+"px";
+    wrapper2.style.top=h*(0.05-cardup[1])+"px";
+    wrapper1.style.left=w*0.25-h*0.275*0.8+"px";
+    wrapper2.style.left=w*0.75-h*0.275*0.8+"px";
     
-    card1.style.width=h*0.55*0.8+"px";
-    card1.style.height=h*0.85*0.8+"px";
-    card2.style.width=h*0.55*0.8+"px";
-    card2.style.height=h*0.85*0.8+"px";
+    wrapper1.style.width=h*0.55*0.8+"px";
+    wrapper1.style.height=h*0.85*0.8+"px";
+    wrapper2.style.width=h*0.55*0.8+"px";
+    wrapper2.style.height=h*0.85*0.8+"px";
     
     card1back.style.top=h*0.05-5+"px";
     card2back.style.top=h*0.05-5+"px";
