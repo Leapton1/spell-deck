@@ -95,24 +95,34 @@ for (i = 0; i < coll.length; i++) {
 
   <div id="box" style="width: 100%; height:100%;">
   </div>
+  
+    <img id="your_turn" src="{{url_for('static', filename='your_turn.png')}}" class="overlay" width="100%" height="20" style="z-index:6; visibility:hidden;">
   <div id="square" class="square"></div>
   <img id="cardshow" src="{{url_for('static', filename='card_base.jpg')}}" width="55" height="85" class="overlay">
-  <img id="hp1" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay" style="z-index:2;">
-  <img id="hp2" src="{{url_for('static', filename='basic_hp_heart.png')}}" width="250" height="250" class="overlay" style="z-index:2;">
+  <div id="hp1" width="250" height="250" class="overlay" style="z-index:2;">
+    <img id="hp1image" src="{{url_for('static', filename='basic_hp_heart.png')}}" style="width:100%; height:100%;">
+    <div id="hp_value1" class="overlay">0</div>
+    <div id="ward_value1" class="overlay" style="color: blue;">0</div>
+    <img id="hp1warddamage" src="{{url_for('static', filename='shielded.png')}}" class="overlay" style="width:100%; height:100%; transform: rotate(180deg); visibility:hidden;">
+    <img id="hp1damage" src="{{url_for('static', filename='damage.png')}}" class="overlay" style="width:100%; height:100%; visibility:hidden;">
+  </div>
+  <div id="hp2" width="250" height="250" class="overlay" style="z-index:2;">
+    <img id="hp2image" src="{{url_for('static', filename='basic_hp_heart.png')}}" style="width:100%; height:100%;">
+    <div id="hp_value2" class="overlay">0</div>
+    <div id="ward_value2" class="overlay" style="color: blue;">0</div>
+    <img id="hp2warddamage" src="{{url_for('static', filename='shielded.png')}}" class="overlay" style="width:100%; height:100%; visibility:hidden;">
+    <img id="hp2damage" src="{{url_for('static', filename='damage.png')}}" class="overlay" style="width:100%; height:100%; visibility:hidden;">
+  </div>
   <img id="card1back" width="55" height="85" class="overlay" style="background-color: blue; z-index:0;">
   <img id="card2back" width="55" height="85" class="overlay" style="background-color: red; z-index:0;">
   <div id="wrapper1" class="overlay">
-    <div id="shade1" style="width: 100%; height:100%; opacity: 0.5; background-color: #000000; z-index:2; position:absolute;"></div>
+    <div id="shade1" style="width: 100%; height:100%; opacity: 0.5; background-color: #000000; z-index:2; position:absolute; visibility:hidden;"></div>
     <img id="card1" src="{{url_for('static', filename='card_base.jpg')}}" class="overlay" style="width: 100%; height:100%;">
   </div>
   <div id="wrapper2" class="overlay">
-    <div id="shade2" style="width: 100%; height:100%; opacity: 0.5; background-color: #000000; z-index:2; position:absolute;"></div>
+    <div id="shade2" style="width: 100%; height:100%; opacity: 0.5; background-color: #000000; z-index:2; position:absolute; visibility:hidden;"></div>
     <img id="card2" src="{{url_for('static', filename='card_base.jpg')}}" class="overlay" style="width: 100%; height:100%;">
   </div>
-  <div id="hp_value1" class="overlay" style="z-index:2;">0</div>
-  <div id="hp_value2" class="overlay" style="z-index:2;">0</div>
-  <div id="ward_value1" class="overlay" style="color: blue;z-index:2;">0</div>
-  <div id="ward_value2" class="overlay" style="color: blue;z-index:2;">0</div>
   <div id="description" class="overlay" style="color:#bebebe">This is what the card says</div>
   <button id="cast_button" onclick="" class="overlay">Cast</button>
 <script>
@@ -141,6 +151,7 @@ for (i = 0; i < coll.length; i++) {
   game_code=0;
   cardup=[0,0];
   allow_card_animate=true;
+  backborders=[1,1]
   
   player_stats=[[0,[],0,[false]],[0,[],0,[false]]];
   
@@ -198,7 +209,15 @@ async function get_session(session_id){
   document.getElementById('lobby_info').innerHTML="player "+jsonResponse[1]+"<br>gamecode: "+jsonResponse[3]+"<br>id: "+jsonResponse[4];
   if (player_num==0){
     makecard("DUD")
+    your_turn_display();
+    backborders[0]=2;
+    backborders[1]=1;
   }
+  else{
+    backborders[0]=1;
+    backborders[1]=2;
+  }
+  
   resize();
   } 
   ).catch((err) => console.error(err));
@@ -283,10 +302,12 @@ function damage(player,damage){
   }
   if (damage<=player_stats[player][2]){
     player_stats[player][2]=player_stats[player][2]-damage;
+    ward_damage_display(player)
   }
   else{
     damage=damage-player_stats[player][2];
     player_stats[player][0]=player_stats[player][0]-damage;
+    damage_display(player)
   }
 }
 
@@ -426,8 +447,8 @@ async function cast(action){
   console.log(action, "a");
   action_list[action[1]].push(action);
   update();
-  shade1.style.visibility="hidden";
-  shade2.style.visibility="hidden";
+  //shade1.style.visibility="hidden";
+  //shade2.style.visibility="hidden";
   if (action[1]==player_num){
     await animate_play(0);
     shade1.style.visibility="visible";
@@ -459,14 +480,24 @@ async function do_action(action){
   player_turn=other_player(action[1]);
   update();
   if (player_num==player_turn){
+    your_turn_display();
     //alert("your turn");
+    backborders[0]=2;
+    backborders[1]=4;
+    setTimeout(()=>{backborders[1]=1;
+               resize();},1000)
     //document.getElementById("card1").style.borderWidth="9px";
     //document.getElementById("card2").style.borderWidth="3px";
   }
   else{
+    backborders[0]=4;
+    backborders[1]=2;
+    setTimeout(()=>{backborders[0]=1;
+               resize();},1000)
     //document.getElementById("card1").style.borderWidth="3px";
     //document.getElementById("card2").style.borderWidth="9px";
   }
+  resize();
   player_stats[other_player(action[1])][2]=0;
   player_stats[other_player(action[1])][3][0]=false;
   update();
@@ -670,6 +701,33 @@ function makecard(cardcode){
   //console.log(card_img);
 }
 
+function your_turn_display(){
+  your_turn.style.visibility="visible";
+  setTimeout(()=>{your_turn.style.visibility="hidden";},1000)
+}
+
+function damage_display(player){
+  if (player_num!=player){
+    hp1damage.style.visibility="visible";
+    setTimeout(()=>{hp1damage.style.visibility="hidden";},1000)
+  }
+  else{
+    hp2damage.style.visibility="visible";
+    setTimeout(()=>{hp2damage.style.visibility="hidden";},1000)
+  }
+}
+
+function ward_damage_display(player){
+  if (player_num!=player){
+    hp1warddamage.style.visibility="visible";
+    setTimeout(()=>{hp1warddamage.style.visibility="hidden";},1000)
+  }
+  else{
+    hp2warddamage.style.visibility="visible";
+    setTimeout(()=>{hp2warddamage.style.visibility="hidden";},1000)
+  }
+}
+
 async function animate_play(player){
   var i;
   var h = window.innerHeight;
@@ -728,14 +786,14 @@ async function resize(){
     hp2.style.height=h*0.3+"px";
     
     hp_value1.style.top=h*0.15+"px";
-    hp_value2.style.top=h*0.55+"px";
-    hp_value1.style.left=w*0.5+"px";
-    hp_value2.style.left=w*0.5+"px";
+    hp_value2.style.top=h*0.15+"px";
+    hp_value1.style.left=h*0.15+"px";
+    hp_value2.style.left=h*0.15+"px";
     
     ward_value1.style.top=h*0.18+"px";
-    ward_value2.style.top=h*0.58+"px";
-    ward_value1.style.left=w*0.5+"px";
-    ward_value2.style.left=w*0.5+"px";
+    ward_value2.style.top=h*0.18+"px";
+    ward_value1.style.left=h*0.15+"px";
+    ward_value2.style.left=h*0.15+"px";
     
     wrapper1.style.top=h*(0.05-cardup[0])+"px";
     wrapper2.style.top=h*(0.05-cardup[1])+"px";
@@ -747,15 +805,17 @@ async function resize(){
     wrapper2.style.width=h*0.55*0.8+"px";
     wrapper2.style.height=h*0.85*0.8+"px";
     
-    card1back.style.top=h*0.05-5+"px";
-    card2back.style.top=h*0.05-5+"px";
-    card1back.style.left=w*0.25-h*0.275*0.8-5+"px";
-    card2back.style.left=w*0.75-h*0.275*0.8-5+"px";
+    card1back.style.top=h*0.05-(0.005*h*backborders[0])+"px";
+    card2back.style.top=h*0.05-(0.005*h*backborders[1])+"px";
+    card1back.style.left=w*0.25-h*0.275*0.8-(0.005*h*backborders[0])+"px";
+    card2back.style.left=w*0.75-h*0.275*0.8-(0.005*h*backborders[1])+"px";
     
-    card1back.style.width=h*0.55*0.8+10+"px";
-    card1back.style.height=h*0.85*0.8+10+"px";
-    card2back.style.width=h*0.55*0.8+10+"px";
-    card2back.style.height=h*0.85*0.8+10+"px";
+    card1back.style.width=h*0.55*0.8+(0.01*h*backborders[0])+"px";
+    card1back.style.height=h*0.85*0.8+(0.01*h*backborders[0])+"px";
+    card2back.style.width=h*0.55*0.8+(0.01*h*backborders[1])+"px";
+    card2back.style.height=h*0.85*0.8+(0.01*h*backborders[1])+"px";
+    
+    your_turn.style.height=w*0.4+"px";
 }
 
 window.onresize = function() {
