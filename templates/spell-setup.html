@@ -2,7 +2,23 @@
 
 <html>
   <style>
+.inputs {
+  position: fixed; /* Sit on top of the page content */
+  width: 50%; /* Full width (cover the whole page) */
+  height: 100%; /* Full height (cover the whole page) */
+  top: 0;
+  left: 50%;
+  background-image: linear-gradient(black, #273cd8);
+}
 
+.cards {
+  position: fixed; /* Sit on top of the page content */
+  width: 50%; /* Full width (cover the whole page) */
+  height: 100%; /* Full height (cover the whole page) */
+  top: 0;
+  left: 0;
+  background-color: purple;
+}
     
   </style>
 <head>
@@ -10,11 +26,33 @@
 </head>
 <body>
   <div id="box">
-  <button id="play_button" onclick="send_session(player);" >Play</button>
-  <button id="player_button" onclick="change_player();" >Player: 1</button>
-  <button id="new_game_button" onclick="make_game();" >Create new game</button>
-  <input id="gameIDinput" type="text" name="myCountry" placeholder="Game Code">
-  <input id="gameindexinput" type="text" name="myCountry" placeholder="Game ID">
+    
+  <div id="cards" class="cards">
+  <div id="inputs" class="inputs">
+    <button id="play_button" onclick="send_session(player);" >Play</button>
+    <button id="player_button" onclick="change_player();" >Player: 1</button>
+    <button id="new_game_button" onclick="make_game();" >Create new game</button>
+    <input id="gameIDinput" type="text" name="myCountry" placeholder="Game Password">
+    <input id="gameindexinput" type="text" name="myCountry" placeholder="Game ID">
+    <p style="color:#273cd8">How to start:<br>
+    - (optional) put in a password for your game <br>
+    - click create new game<br>
+    - An ID will appear in the game ID box, get your friend to input the id and password into their boxes.<br>
+    - Select which player you'd like to be by clicking on the player button.<br>
+    - both players press play<br>
+    - (While in game, the id and password can be found by clicking the i in the top left)
+    </p>
+    <p style="color:black; top:60%; position:absolute;"><b>How to play:<br>
+    - play a spell from your hand each turn<br>
+    - spells will cast at the start of your next turn<br>
+    - instants are cast immediately<br>
+    - the game ends when you've cast all the spells in your hand<br>
+    - whoever has dealt the most damage to the other player at the end of the game wins<br>
+    - some spells deal damage, and some spells prevent damage by adding defense, which is damaged instead of your health<br>
+    - and some spells are counterspell.<br>
+    - we don't talk about counterspell<br>
+    - (spells also have types, like arcane and fire, which may affect other spells)</b></p>
+  </div>
 <script>
   
 player=1;
@@ -35,6 +73,8 @@ function change_player(){
   document.getElementById("player_button").innerHTML = "Player: "+player;
 }
   
+  
+//communicating with the server:
   
 function send_session(info){
     message=[info,document.getElementById("gameIDinput").value,document.getElementById('gameindexinput').value];
@@ -88,6 +128,21 @@ function make_game(){
   } 
   ).catch((err) => console.error(err));
 }
+
+
+//visuals:
+
+function resize(){
+    var i;
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+}
+
+window.onresize = function() {
+    resize();
+};
+
+//Selecting and changing cards:
 
 function getcard(cardcode){
   if (cardcode=="FRB"){

@@ -261,6 +261,7 @@ async function getinfo() {
 
 
 async function send_action(cardcode){
+  if (allow_card_animate==true){
     message=[cardcode,player_num,getstats(cardcode),game_id,[],game_code];
      fetch(
            '/action', 
@@ -289,6 +290,7 @@ async function send_action(cardcode){
   } 
   ).catch((err) => console.error(err));
   getinfo().then();
+  }
 }
 
 
@@ -359,9 +361,11 @@ function cast_absorb_elements(action){
 
 function cast_twinflame(action){
   var check=false;
-  var i;
-  for (i = 0; i < action_list[action[1]].length; i++) {
+  console.log(action_list, "oo");
+  var i=action_list[action[1]].length-1;
+  if (i>=0){
     var i2;
+    console.log(action_list[action[1]], "ooo");
     for (i2 = 0; i2 < action_list[action[1]][i][2][3].length; i2++) {
       if (action_list[action[1]][i][2][3][i2]=="damaging"){
         check=true;
@@ -554,7 +558,7 @@ function getstats(cardcode){
     return [false,[],["Countered spell", "this spell has been countered"],[]];
   }
   else if (cardcode=="DUD"){
-    return [false,[],["The Dud", "You get this spell for going first. Remember that only instants will work on your last turn."],[]];
+    return [false,[],["The Dud", "Does nothing. You get this spell for going first. Only instants will work on your last turn."],[]];
   }
   else{
     return [false,["Not found"],["Not found","Not found"],[]];
