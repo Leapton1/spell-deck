@@ -5,10 +5,11 @@
 .inputs {
   position: fixed; /* Sit on top of the page content */
   width: 50%; /* Full width (cover the whole page) */
-  height: 100%; /* Full height (cover the whole page) */
+  min-height: 100%; /* Full height (cover the whole page) */
   top: 0;
   left: 50%;
   background-image: linear-gradient(black, #273cd8);
+  border:1px solid red;
 }
 
 .cards {
@@ -42,7 +43,7 @@
     - both players press play<br>
     - (While in game, the id and password can be found by clicking the i in the top left)
     </p>
-    <p style="color:black; top:60%; position:absolute; font-size:1vw;"><b>How to play:<br>
+    <p style="color:black; top:50%; position:absolute; font-size:1vw;"><b>How to play:<br>
     - play a spell from your hand each turn<br>
     - spells will cast at the start of your next turn<br>
     - instants are cast immediately<br>
